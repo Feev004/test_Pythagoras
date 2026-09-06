@@ -180,6 +180,8 @@
 
     .zoom-controls button:hover { background: var(--orange); }
 
+    .zoom-controls .fullscreen-button { font-size: .95rem; }
+
     .scale-info {
       display: flex;
       justify-content: space-between;
@@ -374,6 +376,7 @@
             <button type="button" data-zoom="out" aria-label="ซูมออก">−</button>
             <button type="button" data-zoom="reset" aria-label="รีเซ็ตการซูม">1:1</button>
             <button type="button" data-zoom="in" aria-label="ซูมเข้า">+</button>
+            <button class="fullscreen-button" type="button" id="fullscreenButton" aria-label="เปิดเต็มหน้าจอ">⛶</button>
           </div>
         </div>
       </div>
@@ -417,6 +420,7 @@
     const mapTitle = document.querySelector("#mapTitle");
     const mapLabels = document.querySelectorAll(".map-label");
     const zoomControls = document.querySelector(".zoom-controls");
+    const fullscreenButton = document.querySelector("#fullscreenButton");
     const mapImage = new Image();
     const METERS_PER_CELL = 100;
     const MAP_CELLS = 80;
@@ -652,6 +656,27 @@
       if (action === "reset") { zoom = 1; panX = 0; panY = 0; }
       constrainPan();
       drawMap();
+    });
+
+    async function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        if (mapWrap.requestFullscreen) await mapWrap.requestFullscreen();
+        else if (mapWrap.webkitRequestFullscreen) mapWrap.webkitRequestFullscreen();
+      } else if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+    }
+
+    function updateFullscreenButton() {
+      const isFullscreen = document.fullscreenElement === mapWrap;
+      fullscreenButton.textContent = isFullscreen ? "×" : "⛶";
+      fullscreenButton.setAttribute("aria-label", isFullscreen ? "ออกจากเต็มหน้าจอ" : "เปิดเต็มหน้าจอ");
+    }
+
+    fullscreenButton.addEventListener("click", toggleFullscreen);
+    document.addEventListener("fullscreenchange", () => {
+      updateFullscreenButton();
+      resizeCanvas();
     });
 
     mapWrap.addEventListener("wheel", (event) => {
