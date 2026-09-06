@@ -182,6 +182,34 @@
 
     .zoom-controls .fullscreen-button { font-size: .95rem; }
 
+    .pan-controls {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 34px);
+      grid-template-rows: repeat(3, 34px);
+      gap: 3px;
+    }
+
+    .pan-controls button {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border: 0;
+      color: #fffdf8;
+      background: rgba(24, 34, 30, .82);
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .pan-controls button:hover { background: var(--orange); }
+
+    .pan-up { grid-column: 2; grid-row: 1; }
+    .pan-left { grid-column: 1; grid-row: 2; }
+    .pan-right { grid-column: 3; grid-row: 2; }
+    .pan-down { grid-column: 2; grid-row: 3; }
+
     .scale-info {
       display: flex;
       justify-content: space-between;
@@ -345,7 +373,6 @@
     <header>
       <div>
         <p class="kicker">PUBG / FIELD TOOL 01</p>
-        <h1>ปักจุด แล้วรู้ระยะ</h1>
       </div>
       <p class="header-note">เครื่องมือวัดระยะเส้นตรงระหว่างสองจุดบนแผนที่ ด้วยสูตรพีทาโกรัส</p>
     </header>
@@ -377,6 +404,12 @@
             <button type="button" data-zoom="reset" aria-label="รีเซ็ตการซูม">1:1</button>
             <button type="button" data-zoom="in" aria-label="ซูมเข้า">+</button>
             <button class="fullscreen-button" type="button" id="fullscreenButton" aria-label="เปิดเต็มหน้าจอ">⛶</button>
+          </div>
+          <div class="pan-controls" aria-label="ปุ่มเลื่อนแผนที่">
+            <button class="pan-up" type="button" data-pan="up" aria-label="เลื่อนขึ้น">↑</button>
+            <button class="pan-left" type="button" data-pan="left" aria-label="เลื่อนไปทางซ้าย">←</button>
+            <button class="pan-right" type="button" data-pan="right" aria-label="เลื่อนไปทางขวา">→</button>
+            <button class="pan-down" type="button" data-pan="down" aria-label="เลื่อนลง">↓</button>
           </div>
         </div>
       </div>
@@ -420,6 +453,7 @@
     const mapTitle = document.querySelector("#mapTitle");
     const mapLabels = document.querySelectorAll(".map-label");
     const zoomControls = document.querySelector(".zoom-controls");
+    const panControls = document.querySelector(".pan-controls");
     const fullscreenButton = document.querySelector("#fullscreenButton");
     const mapImage = new Image();
     const METERS_PER_CELL = 100;
@@ -600,12 +634,12 @@
     }
 
     mapWrap.addEventListener("click", (event) => {
-      if (event.target.closest(".zoom-controls") || hasDragged) return;
+      if (event.target.closest(".zoom-controls, .pan-controls") || hasDragged) return;
     });
 
     mapWrap.addEventListener("dblclick", (event) => {
       event.preventDefault();
-      if (event.target.closest(".zoom-controls")) return;
+      if (event.target.closest(".zoom-controls, .pan-controls")) return;
       const bounds = mapWrap.getBoundingClientRect();
       const frame = getImageFrame();
       const x = event.clientX - bounds.left;
@@ -621,7 +655,7 @@
     });
 
     mapWrap.addEventListener("pointerdown", (event) => {
-      if (event.target.closest(".zoom-controls")) return;
+      if (event.target.closest(".zoom-controls, .pan-controls")) return;
       isPanning = true;
       hasDragged = false;
       dragStartX = event.clientX;
@@ -654,6 +688,17 @@
       if (action === "in") zoom = Math.min(8, zoom * 1.25);
       if (action === "out") zoom = Math.max(1, zoom / 1.25);
       if (action === "reset") { zoom = 1; panX = 0; panY = 0; }
+      constrainPan();
+      drawMap();
+    });
+
+    panControls.addEventListener("click", (event) => {
+      const direction = event.target.dataset.pan;
+      const step = Math.max(35, Math.min(canvas.clientWidth, canvas.clientHeight) * .18);
+      if (direction === "up") panY += step;
+      if (direction === "down") panY -= step;
+      if (direction === "left") panX += step;
+      if (direction === "right") panX -= step;
       constrainPan();
       drawMap();
     });
