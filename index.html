@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DropLine | PUBG Distance Calculator</title>
+  <style>
+    :root {
+      --ink: #18221e;
+      --muted: #68736d;
+      --paper: #f3f0e8;
+      --panel: #fffdf8;
+      --line: #d9d8cc;
+      --lime: #d7f35b;
+      --orange: #f26f4f;
+      --blue: #55a9d8;
+      --shadow: 0 18px 45px rgba(34, 42, 35, .13);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .kicker {
+      margin: 0 0 8px;
+      color: var(--orange);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, p { margin-top: 0; }
+
+    h1 {
+      max-width: 650px;
+      margin-bottom: 0;
+      font-family: Georgia, serif;
+      font-size: clamp(2.2rem, 5vw, 4.3rem);
+      font-weight: 400;
+      letter-spacing: -.04em;
+      line-height: .94;
+    }
+
+    .header-note {
+      max-width: 255px;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: .9rem;
+      line-height: 1.5;
+      text-align: right;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .map-card, .panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .map-card { padding: 14px; }
+
+    .map-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 5px 13px;
+      color: var(--muted);
+      font-size: .76rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .map-labels {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      padding: 0 5px 12px;
+      scrollbar-width: thin;
+    }
+
+    .map-label {
+      width: auto;
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      padding: 7px 10px;
+      color: var(--muted);
+      background: transparent;
+      font-size: .68rem;
+      letter-spacing: .04em;
+      text-transform: none;
+    }
+
+    .map-label:hover, .map-label.active {
+      border-color: var(--ink);
+      color: var(--ink);
+      background: var(--lime);
+    }
+
+    .live {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--ink);
+      letter-spacing: .04em;
+    }
+
+    .live::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--orange);
+      content: "";
+    }
+
+    .map-wrap {
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 1.45;
+      cursor: crosshair;
+      background: #071d29;
+    }
+
+    canvas { display: block; width: 100%; height: 100%; }
+
+    .map-help {
+      position: absolute;
+      left: 14px;
+      bottom: 12px;
+      padding: 8px 10px;
+      color: #f7f4e9;
+      background: rgba(24, 34, 30, .78);
+      font-size: .75rem;
+      pointer-events: none;
+    }
+
+    .zoom-controls {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 4px;
+    }
+
+    .zoom-controls button {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      color: #fffdf8;
+      background: rgba(24, 34, 30, .82);
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .zoom-controls button:hover { background: var(--orange); }
+
+    .scale-info {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 20px;
+      color: var(--ink);
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    .scale-info span:last-child { color: var(--muted); font-weight: 400; }
+
+    .panel { padding: 22px; }
+
+    .panel h2 {
+      margin-bottom: 19px;
+      font-family: Georgia, serif;
+      font-size: 1.65rem;
+      font-weight: 400;
+    }
+
+    .instruction {
+      margin: -8px 0 20px;
+      color: var(--muted);
+      font-size: .84rem;
+      line-height: 1.45;
+    }
+
+    .points {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 21px;
+    }
+
+    .point {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--line);
+      background: #faf9f3;
+    }
+
+    .point-badge {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 800;
+    }
+
+    .point-a .point-badge { background: var(--orange); }
+    .point-b .point-badge { background: var(--blue); }
+
+    .point-label {
+      display: block;
+      color: var(--muted);
+      font-size: .7rem;
+      font-weight: 800;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .point-value { font-size: .82rem; }
+
+    .field-label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: .75rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .scale-row {
+      display: grid;
+      grid-template-columns: 1fr 92px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 0;
+      padding: 11px 12px;
+      color: var(--ink);
+      background: #faf9f3;
+      font: inherit;
+      font-size: .9rem;
+    }
+
+    input:focus { outline: 2px solid var(--lime); outline-offset: 1px; }
+
+    .result {
+      margin: 3px 0 18px;
+      padding: 17px;
+      background: var(--ink);
+      color: #fffdf8;
+    }
+
+    .result small {
+      color: #abb9ae;
+      font-size: .68rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .distance {
+      margin-top: 5px;
+      color: var(--lime);
+      font-family: Georgia, serif;
+      font-size: 2.55rem;
+      line-height: 1;
+    }
+
+    .distance span { color: #dce4d9; font-family: "Trebuchet MS", sans-serif; font-size: .9rem; }
+
+    .formula {
+      margin: 0;
+      color: var(--muted);
+      font-family: Georgia, serif;
+      font-size: .92rem;
+      font-style: italic;
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      padding: 13px 15px;
+      color: var(--ink);
+      background: var(--lime);
+      cursor: pointer;
+      font: inherit;
+      font-size: .8rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    button:hover { background: #c9e74d; }
+
+    @media (max-width: 760px) {
+      .shell { width: min(100% - 20px, 600px); padding-top: 20px; }
+      header { display: block; }
+      .header-note { margin-top: 13px; text-align: left; }
+      .workspace { grid-template-columns: 1fr; }
+      .map-wrap { aspect-ratio: 1.2; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <p class="kicker">PUBG / FIELD TOOL 01</p>
+        <h1>ปักจุด แล้วรู้ระยะ</h1>
+      </div>
+      <p class="header-note">เครื่องมือวัดระยะเส้นตรงระหว่างสองจุดบนแผนที่ ด้วยสูตรพีทาโกรัส</p>
+    </header>
+
+    <section class="workspace" aria-label="เครื่องมือคำนวณระยะทาง">
+      <div class="map-card">
+        <div class="map-bar">
+          <span id="mapTitle">ERANGEL / GRID 1000 × 1000</span>
+          <span class="live">READY TO PING</span>
+        </div>
+        <div class="map-labels" aria-label="เลือกแผนที่ PUBG">
+          <button class="map-label active" type="button" data-map="Erangel">Erangel</button>
+          <button class="map-label" type="button" data-map="Miramar">Miramar</button>
+          <button class="map-label" type="button" data-map="Sanhok">Sanhok</button>
+          <button class="map-label" type="button" data-map="Vikendi">Vikendi</button>
+          <button class="map-label" type="button" data-map="Taego">Taego</button>
+          <button class="map-label" type="button" data-map="Deston">Deston</button>
+          <button class="map-label" type="button" data-map="Rondo">Rondo</button>
+          <button class="map-label" type="button" data-map="Karakin">Karakin</button>
+          <button class="map-label" type="button" data-map="Paramo">Paramo</button>
+          <button class="map-label" type="button" data-map="Haven">Haven</button>
+          <button class="map-label" type="button" data-map="Nusa">Nusa</button>
+        </div>
+        <div class="map-wrap" id="mapWrap">
+          <canvas id="mapCanvas" aria-label="แผนที่สำหรับปักจุด A และ B"></canvas>
+          <div class="map-help">ดับเบิลคลิก = ปักจุด &nbsp; / &nbsp; กดค้างแล้วลาก = เลื่อนแผนที่</div>
+          <div class="zoom-controls" aria-label="ควบคุมการซูมแผนที่">
+            <button type="button" data-zoom="out" aria-label="ซูมออก">−</button>
+            <button type="button" data-zoom="reset" aria-label="รีเซ็ตการซูม">1:1</button>
+            <button type="button" data-zoom="in" aria-label="ซูมเข้า">+</button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="panel">
+        <h2>Distance check</h2>
+        <p class="instruction">เลือกตำแหน่งสองจุดบนแผนที่เพื่อวัดระยะทางแนวเส้นตรง</p>
+
+        <div class="points">
+          <div class="point point-a">
+            <span class="point-badge">A</span>
+            <div><span class="point-label">Origin</span><span class="point-value" id="pointA">ยังไม่ได้เลือก</span></div>
+          </div>
+          <div class="point point-b">
+            <span class="point-badge">B</span>
+            <div><span class="point-label">Destination</span><span class="point-value" id="pointB">ยังไม่ได้เลือก</span></div>
+          </div>
+        </div>
+
+        <span class="field-label">มาตราส่วนแผนที่</span>
+        <div class="scale-info"><span>ช่องขาว = 100 เมตร</span><span>กรอบดำ = 1,000 เมตร</span></div>
+
+        <div class="result" aria-live="polite">
+          <small>Calculated distance</small>
+          <div class="distance" id="distance">— <span>เมตร</span></div>
+        </div>
+        <p class="formula" id="formula">c² = a² + b²</p>
+        <button type="button" id="resetButton">ล้างจุดทั้งหมด</button>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.querySelector("#mapCanvas");
+    const mapWrap = document.querySelector("#mapWrap");
+    const context = canvas.getContext("2d");
+    const pointAElement = document.querySelector("#pointA");
+    const pointBElement = document.querySelector("#pointB");
+    const distanceElement = document.querySelector("#distance");
+    const formulaElement = document.querySelector("#formula");
+    const mapTitle = document.querySelector("#mapTitle");
+    const mapLabels = document.querySelectorAll(".map-label");
+    const zoomControls = document.querySelector(".zoom-controls");
+    const mapImage = new Image();
+    const METERS_PER_CELL = 100;
+    const MAP_CELLS = 80;
+    const mapImages = {
+      Erangel: "map/erangels-secret-room-map-4k-made-by-pubg-partner-ibakhmet-v0-f3pqxh42g1vb1.webp",
+      Miramar: "map/Miramar.webp",
+      Sanhok: "map/Sanhok.webp",
+      Vikendi: "map/Vikendi.webp",
+      Taego: "map/Taego.webp",
+      Deston: "map/Deston.webp",
+      Rondo: "map/Rondo.webp",
+      Karakin: "map/Karakin.webp",
+      Paramo: "map/Paramo.webp"
+    };
+    const mapThemes = {
+      Erangel: ["#aec39a", "#dce9bc", "#567f59"],
+      Miramar: ["#c9aa78", "#f0d49b", "#977044"],
+      Sanhok: ["#6eaa82", "#b9d59a", "#386f59"],
+      Vikendi: ["#c7d8df", "#eef3ee", "#7399a7"],
+      Taego: ["#9ebc8a", "#d5dfae", "#557c5b"],
+      Deston: ["#88a5a0", "#c6d5bf", "#4a7776"],
+      Rondo: ["#adc2a3", "#e3deb7", "#5f8361"],
+      Karakin: ["#caa678", "#ead19b", "#8b6b44"],
+      Paramo: ["#a99b73", "#d7c990", "#876c51"],
+      Haven: ["#7e9790", "#c4d0b7", "#486665"],
+      Nusa: ["#84b9a1", "#d5e4ae", "#427c6a"]
+    };
+    let selectedMap = "Erangel";
+    let points = [];
+    let zoom = 1;
+    let panX = 0;
+    let panY = 0;
+    let isPanning = false;
+    let hasDragged = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let panStartX = 0;
+    let panStartY = 0;
+    let imageLoaded = false;
+
+    mapImage.src = mapImages[selectedMap];
+    mapImage.addEventListener("load", () => {
+      imageLoaded = true;
+      drawMap();
+    });
+
+    function resizeCanvas() {
+      const bounds = mapWrap.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = bounds.width * ratio;
+      canvas.height = bounds.height * ratio;
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      drawMap();
+    }
+
+    function getImageFrame() {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (!imageLoaded || !mapImages[selectedMap]) {
+        return { x: 0, y: 0, width, height };
+      }
+      const fit = Math.min(width / mapImage.naturalWidth, height / mapImage.naturalHeight);
+      const imageWidth = mapImage.naturalWidth * fit * zoom;
+      const imageHeight = mapImage.naturalHeight * fit * zoom;
+      return { x: (width - imageWidth) / 2 + panX, y: (height - imageHeight) / 2 + panY, width: imageWidth, height: imageHeight };
+    }
+
+    function drawMap() {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const theme = mapThemes[selectedMap];
+      const frame = getImageFrame();
+      context.clearRect(0, 0, width, height);
+      context.fillStyle = theme[0];
+      context.fillRect(0, 0, width, height);
+
+      if (imageLoaded && mapImages[selectedMap]) {
+        context.drawImage(mapImage, frame.x, frame.y, frame.width, frame.height);
+        drawGrid(frame);
+      } else {
+        context.fillStyle = theme[1];
+        context.globalAlpha = .48;
+        [[.14, .68, .27, .25], [.71, .16, .23, .27], [.38, .38, .25, .18], [.79, .72, .22, .2]].forEach(([x, y, w, h]) => {
+          context.beginPath();
+          context.ellipse(width * x, height * y, width * w, height * h, -.3, 0, Math.PI * 2);
+          context.fill();
+        });
+        context.globalAlpha = 1;
+      }
+
+      if (points.length === 2) {
+        const first = toCanvasPoint(points[0]);
+        const second = toCanvasPoint(points[1]);
+        context.strokeStyle = "#18221e";
+        context.setLineDash([7, 6]);
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(first.x, first.y);
+        context.lineTo(second.x, second.y);
+        context.stroke();
+        context.setLineDash([]);
+      }
+      points.forEach((point, index) => drawMarker(toCanvasPoint(point), index));
+    }
+
+    function constrainPan() {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const fit = imageLoaded ? Math.min(width / mapImage.naturalWidth, height / mapImage.naturalHeight) : 1;
+      const imageWidth = mapImage.naturalWidth * fit * zoom;
+      const imageHeight = mapImage.naturalHeight * fit * zoom;
+      panX = Math.max(-Math.max(0, (imageWidth - width) / 2), Math.min(Math.max(0, (imageWidth - width) / 2), panX));
+      panY = Math.max(-Math.max(0, (imageHeight - height) / 2), Math.min(Math.max(0, (imageHeight - height) / 2), panY));
+    }
+
+    function drawGrid(frame) {
+      context.save();
+      context.beginPath();
+      context.rect(frame.x, frame.y, frame.width, frame.height);
+      context.clip();
+      for (let index = 0; index <= MAP_CELLS; index++) {
+        const positionX = frame.x + frame.width * index / MAP_CELLS;
+        const positionY = frame.y + frame.height * index / MAP_CELLS;
+        const isMajor = index % 10 === 0;
+        context.strokeStyle = isMajor ? "rgba(0, 0, 0, .72)" : "rgba(255, 255, 255, .3)";
+        context.lineWidth = isMajor ? 2 : .6;
+        context.beginPath();
+        context.moveTo(positionX, frame.y);
+        context.lineTo(positionX, frame.y + frame.height);
+        context.moveTo(frame.x, positionY);
+        context.lineTo(frame.x + frame.width, positionY);
+        context.stroke();
+      }
+      context.restore();
+    }
+
+    function toCanvasPoint(point) {
+      const frame = getImageFrame();
+      return { x: frame.x + point.x * frame.width, y: frame.y + point.y * frame.height };
+    }
+
+    function drawMarker(point, index) {
+      const color = index === 0 ? "#f26f4f" : "#55a9d8";
+      context.beginPath();
+      context.arc(point.x, point.y, 10, 0, Math.PI * 2);
+      context.fillStyle = "rgba(255, 253, 248, .9)";
+      context.fill();
+      context.lineWidth = 2;
+      context.strokeStyle = color;
+      context.stroke();
+      context.fillStyle = color;
+      context.font = "bold 10px Trebuchet MS";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(index === 0 ? "A" : "B", point.x, point.y);
+      context.textAlign = "start";
+      context.textBaseline = "alphabetic";
+    }
+
+    function updateResult() {
+      pointAElement.textContent = points[0] ? formatPoint(points[0]) : "ยังไม่ได้เลือก";
+      pointBElement.textContent = points[1] ? formatPoint(points[1]) : "ยังไม่ได้เลือก";
+      if (points.length < 2) {
+        distanceElement.innerHTML = "— <span>เมตร</span>";
+        formulaElement.textContent = "c² = a² + b²";
+        return;
+      }
+      const horizontal = Math.abs(points[1].x - points[0].x) * MAP_CELLS * METERS_PER_CELL;
+      const vertical = Math.abs(points[1].y - points[0].y) * MAP_CELLS * METERS_PER_CELL;
+      const distance = Math.sqrt(horizontal ** 2 + vertical ** 2);
+      distanceElement.innerHTML = `${Math.round(distance).toLocaleString("th-TH")} <span>เมตร</span>`;
+      formulaElement.textContent = `c = √(${Math.round(horizontal)}² + ${Math.round(vertical)}²)`;
+    }
+
+    function formatPoint(point) {
+      return `${Math.round(point.x * 1000)} / ${Math.round(point.y * 1000)}`;
+    }
+
+    mapWrap.addEventListener("click", (event) => {
+      if (event.target.closest(".zoom-controls") || hasDragged) return;
+    });
+
+    mapWrap.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      if (event.target.closest(".zoom-controls")) return;
+      const bounds = mapWrap.getBoundingClientRect();
+      const frame = getImageFrame();
+      const x = event.clientX - bounds.left;
+      const y = event.clientY - bounds.top;
+      if (x < frame.x || x > frame.x + frame.width || y < frame.y || y > frame.y + frame.height) return;
+      const nextPoint = {
+        x: Math.max(0, Math.min(1, (x - frame.x) / frame.width)),
+        y: Math.max(0, Math.min(1, (y - frame.y) / frame.height))
+      };
+      points = points.length === 2 ? [nextPoint] : [...points, nextPoint];
+      drawMap();
+      updateResult();
+    });
+
+    mapWrap.addEventListener("pointerdown", (event) => {
+      if (event.target.closest(".zoom-controls")) return;
+      isPanning = true;
+      hasDragged = false;
+      dragStartX = event.clientX;
+      dragStartY = event.clientY;
+      panStartX = panX;
+      panStartY = panY;
+      mapWrap.setPointerCapture(event.pointerId);
+      mapWrap.style.cursor = "grabbing";
+    });
+
+    mapWrap.addEventListener("pointermove", (event) => {
+      if (!isPanning) return;
+      const movementX = event.clientX - dragStartX;
+      const movementY = event.clientY - dragStartY;
+      hasDragged = Math.abs(movementX) > 4 || Math.abs(movementY) > 4;
+      panX = panStartX + movementX;
+      panY = panStartY + movementY;
+      constrainPan();
+      drawMap();
+    });
+
+    mapWrap.addEventListener("pointerup", (event) => {
+      isPanning = false;
+      mapWrap.releasePointerCapture(event.pointerId);
+      mapWrap.style.cursor = "crosshair";
+    });
+
+    zoomControls.addEventListener("click", (event) => {
+      const action = event.target.dataset.zoom;
+      if (action === "in") zoom = Math.min(8, zoom * 1.25);
+      if (action === "out") zoom = Math.max(1, zoom / 1.25);
+      if (action === "reset") { zoom = 1; panX = 0; panY = 0; }
+      constrainPan();
+      drawMap();
+    });
+
+    mapWrap.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      zoom = event.deltaY < 0 ? Math.min(8, zoom * 1.15) : Math.max(1, zoom / 1.15);
+      constrainPan();
+      drawMap();
+    }, { passive: false });
+
+    mapLabels.forEach((label) => label.addEventListener("click", () => {
+      selectedMap = label.dataset.map;
+      mapLabels.forEach((item) => item.classList.toggle("active", item === label));
+      mapTitle.textContent = `${selectedMap.toUpperCase()} / GRID 1000 × 1000`;
+      points = [];
+      panX = 0;
+      panY = 0;
+      zoom = 1;
+      imageLoaded = false;
+      mapImage.src = mapImages[selectedMap] || "";
+      drawMap();
+      updateResult();
+    }));
+
+    document.querySelector("#resetButton").addEventListener("click", () => {
+      points = [];
+      drawMap();
+      updateResult();
+    });
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+  </script>
+</body>
+</html>
