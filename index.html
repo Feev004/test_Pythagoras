@@ -380,7 +380,7 @@
     <section class="workspace" aria-label="เครื่องมือคำนวณระยะทาง">
       <div class="map-card">
         <div class="map-bar">
-          <span id="mapTitle">ERANGEL / GRID 1000 × 1000</span>
+          <span id="mapTitle">ERANGEL / 8 × 8 KM</span>
           <span class="live">READY TO PING</span>
         </div>
         <div class="map-labels" aria-label="เลือกแผนที่ PUBG">
@@ -393,6 +393,7 @@
           <button class="map-label" type="button" data-map="Rondo">Rondo</button>
           <button class="map-label" type="button" data-map="Karakin">Karakin</button>
           <button class="map-label" type="button" data-map="Paramo">Paramo</button>
+          <button class="map-label" type="button" data-map="Livik">Livik</button>
           <button class="map-label" type="button" data-map="Haven">Haven</button>
           <button class="map-label" type="button" data-map="Nusa">Nusa</button>
         </div>
@@ -457,7 +458,20 @@
     const fullscreenButton = document.querySelector("#fullscreenButton");
     const mapImage = new Image();
     const METERS_PER_CELL = 100;
-    const MAP_CELLS = 80;
+    const mapSizes = {
+      Erangel: 8,
+      Miramar: 8,
+      Vikendi: 8,
+      Rondo: 8,
+      Taego: 8,
+      Deston: 8,
+      Sanhok: 4,
+      Livik: 2,
+      Karakin: 2,
+      Nusa: 2,
+      Paramo: 3,
+      Haven: 1
+    };
     const mapImages = {
       Erangel: "map/erangels-secret-room-map-4k-made-by-pubg-partner-ibakhmet-v0-f3pqxh42g1vb1.webp",
       Miramar: "map/Miramar.webp",
@@ -494,6 +508,15 @@
     let panStartX = 0;
     let panStartY = 0;
     let imageLoaded = false;
+
+    function getMapCells() {
+      return mapSizes[selectedMap] * 10;
+    }
+
+    function getMapSizeLabel() {
+      const size = mapSizes[selectedMap] || 8;
+      return `${size} × ${size} KM`;
+    }
 
     mapImage.src = mapImages[selectedMap];
     mapImage.addEventListener("load", () => {
@@ -575,9 +598,10 @@
       context.beginPath();
       context.rect(frame.x, frame.y, frame.width, frame.height);
       context.clip();
-      for (let index = 0; index <= MAP_CELLS; index++) {
-        const positionX = frame.x + frame.width * index / MAP_CELLS;
-        const positionY = frame.y + frame.height * index / MAP_CELLS;
+      const mapCells = getMapCells();
+      for (let index = 0; index <= mapCells; index++) {
+        const positionX = frame.x + frame.width * index / mapCells;
+        const positionY = frame.y + frame.height * index / mapCells;
         const isMajor = index % 10 === 0;
         context.strokeStyle = isMajor ? "rgba(0, 0, 0, .72)" : "rgba(255, 255, 255, .3)";
         context.lineWidth = isMajor ? 2 : .6;
@@ -622,15 +646,17 @@
         formulaElement.textContent = "c² = a² + b²";
         return;
       }
-      const horizontal = Math.abs(points[1].x - points[0].x) * MAP_CELLS * METERS_PER_CELL;
-      const vertical = Math.abs(points[1].y - points[0].y) * MAP_CELLS * METERS_PER_CELL;
+      const mapCells = getMapCells();
+      const horizontal = Math.abs(points[1].x - points[0].x) * mapCells * METERS_PER_CELL;
+      const vertical = Math.abs(points[1].y - points[0].y) * mapCells * METERS_PER_CELL;
       const distance = Math.sqrt(horizontal ** 2 + vertical ** 2);
       distanceElement.innerHTML = `${Math.round(distance).toLocaleString("th-TH")} <span>เมตร</span>`;
       formulaElement.textContent = `c = √(${Math.round(horizontal)}² + ${Math.round(vertical)}²)`;
     }
 
     function formatPoint(point) {
-      return `${Math.round(point.x * 1000)} / ${Math.round(point.y * 1000)}`;
+      const mapMeters = (mapSizes[selectedMap] || 8) * 1000;
+      return `${Math.round(point.x * mapMeters)} / ${Math.round(point.y * mapMeters)}`;
     }
 
     mapWrap.addEventListener("click", (event) => {
@@ -734,7 +760,7 @@
     mapLabels.forEach((label) => label.addEventListener("click", () => {
       selectedMap = label.dataset.map;
       mapLabels.forEach((item) => item.classList.toggle("active", item === label));
-      mapTitle.textContent = `${selectedMap.toUpperCase()} / GRID 1000 × 1000`;
+      mapTitle.textContent = `${selectedMap.toUpperCase()} / ${getMapSizeLabel()}`;
       points = [];
       panX = 0;
       panY = 0;
