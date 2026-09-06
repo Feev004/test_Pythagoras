@@ -1,0 +1,7 @@
+services:
+  pubg-distance-map:
+    build: .
+    container_name: pubg-distance-map
+    ports:
+      - "8080:80"
+    restart: unless-stopped
